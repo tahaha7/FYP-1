@@ -12,6 +12,10 @@ dataset:
     EngPk: "corpus/US-EngPk"
   local_dir: "data/raw"
   manifest_dir: "data/manifests"
+  # the hand-checked benchmark lives in its own folders and is test-only,
+  # it must never end up in data/raw or the training manifests
+  benchmark_dir: "data/benchmark_raw"
+  benchmark_manifest_dir: "data/benchmark_manifests"
 
 asr:
   # small model on cpu, the fine-tuned one on gpu
@@ -19,7 +23,10 @@ asr:
   gpu_model_size: "large-v3"
   compute_type_cpu: "int8"
   compute_type_gpu: "float16"
-  language: null        # dont force a language, meetings switch urdu/english
+  # null = auto-detect (use for the stock-model baseline). set to "ur" once
+  # the fine-tuned model is in use - it is trained with the ur token, and
+  # auto-detect often picks hi or en on this audio
+  language: null
   vad_filter: true
   word_timestamps: true
 

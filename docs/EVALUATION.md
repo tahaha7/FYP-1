@@ -15,8 +15,17 @@ WER measures how different the system's transcript is from the correct
 transcript, counted in words: wrong words (substitutions), missing words
 (deletions) and extra words (insertions), divided by the number of words
 in the correct transcript. It is computed with `jiwer` in
-`echomind/evaluate_asr.py`, after normalising both sides the same way
-(lowercasing, removing Urdu and English punctuation, collapsing spaces).
+`echomind/evaluate_asr.py`, after normalising both sides with
+`echomind/text_norm.py` (Unicode NFKC; Arabic yeh, kaf and heh unified to
+their Urdu forms; diacritics and tatweel removed; Urdu digits to 0–9;
+lowercasing; all Urdu and English punctuation removed). Training
+validation WER uses the same normaliser.
+
+WER is reported **corpus-level**: total word errors over all files divided
+by total reference words. The per-file average is also saved
+(`wer_macro`) but is not reported, because it lets a three-word clip weigh
+as much as a forty-word one. Scores are also broken down by subset (CS,
+Std, EngPk) and category in every results file.
 
 **Direction:** lower is better. 0.00 is a perfect transcript. As a rough
 guide for read or broadcast speech, below 0.10 is strong, 0.10–0.25 is
@@ -90,7 +99,7 @@ Benchmark.*
 RTF is processing time divided by audio duration. An RTF of 0.25 means a
 10-minute meeting was transcribed in 2.5 minutes. `evaluate_asr.py`
 records RTF per file (wall-clock transcription time over clip duration)
-and reports the average.
+and reports total processing time over total audio duration.
 
 **Direction:** lower is better; below 1.0 means faster than real time.
 RTF is meaningless without the hardware, so every reported RTF names the
@@ -106,14 +115,18 @@ int8 on CPU).
    numbers come from the manually checked **US-benchmark**, whose
    transcripts were corrected by hand and can be trusted as ground truth.
 2. **Never train on the benchmark.** Benchmark data is downloaded to a
-   separate folder (`data/benchmark_raw`) with its own manifests and is
-   never merged into the training manifests. A model scored on data it
-   trained on is measuring memory, not ability.
-3. **Speaker-aware splits.** Corpus manifests are built with
-   `prepare_data.py --speaker-aware`, so no speaker appears in more than
+   separate folder (`data/benchmark_raw`, the default for
+   `download_data.py --benchmark`) and `prepare_data.py --benchmark` puts
+   every benchmark clip into one test manifest. `prepare_data.py` refuses
+   to run on a folder that holds both corpus and benchmark files. A model
+   scored on data it trained on is measuring memory, not ability.
+3. **Speaker-aware splits.** Corpus manifests are speaker-aware by
+   default in `prepare_data.py`, so no speaker appears in more than
    one of train / val / test. Scores are therefore measured on voices the
    model has never heard.
-4. **Fixed seed.** Splits use seed 42 (the default in `prepare_data.py`).
+4. **Fixed seed.** Splits use seed 42 (the default in `prepare_data.py`),
+   and give the same split on every run and machine (speakers are sorted
+   before shuffling). Each results file stores the manifest's SHA-256.
    Any change of seed or split is a change of experiment and is recorded
    with the results.
 5. **Clip limits are stated.** Training skips clips longer than 30

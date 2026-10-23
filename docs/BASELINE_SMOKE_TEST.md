@@ -16,6 +16,12 @@ download -> manifests -> transcription -> WER/CER scoring. It passed.
 
 ## Results (13 clips)
 
+Note: these numbers were computed before the evaluation fixes of
+23 Oct 2026 — they are per-file averages without Urdu Unicode
+normalisation, and the 134-clip sample mixed corpus and benchmark data in
+one split. They are kept as the record of the pipeline check only; re-run
+with the current `evaluate_asr.py` for a corpus-level figure.
+
 | Metric | Value |
 | --- | --- |
 | WER | 0.807 (80.7%) |

@@ -82,8 +82,9 @@ class MeetingPipeline:
         stem = Path(audio_path).stem
 
         # 1. transcribe
+        language = self.cfg.get("asr", {}).get("language")
         asr = self._step("transcribe", lambda: transcribe_file(
-            audio_path, model_size, device, compute_type))
+            audio_path, model_size, device, compute_type, language=language))
         if asr is None:
             raise RuntimeError(f"transcription failed: {self.status['transcribe']}")
 

@@ -2,7 +2,11 @@ import argparse
 
 import torch
 from peft import PeftModel
-from transformers import AutoProcessor, WhisperForConditionalGeneration
+from transformers import (
+    AutoProcessor,
+    WhisperForConditionalGeneration,
+    WhisperTokenizerFast,
+)
 
 # the ct2 converter needs a full model, not just a lora adapter
 # so this merges the adapter back into the base model first
@@ -28,6 +32,10 @@ def main():
     model.save_pretrained(args.out)
     processor = AutoProcessor.from_pretrained(args.adapter)
     processor.save_pretrained(args.out)
+    # the ct2 converter copies tokenizer.json, which only the fast tokenizer
+    # writes. without it faster-whisper tries to download a tokenizer from
+    # the hub, which breaks offline use
+    WhisperTokenizerFast.from_pretrained(args.adapter).save_pretrained(args.out)
     print(f"merged model saved to {args.out}")
     print(f"next: python scripts/convert_ct2.py --model {args.out}")
 

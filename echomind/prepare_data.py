@@ -1,6 +1,7 @@
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 
 import yaml
@@ -23,6 +24,12 @@ def find_audio(cat_dir, clip_name):
     return p
 
 
+def subset_of(path):
+    # corpus/US-CS/... or benchmark/US-benchmark-CS/... -> CS
+    m = re.search(r"US-(?:benchmark-)?(CS|Std|EngPk)(?:/|\\|$)", str(path))
+    return m.group(1) if m else "unknown"
+
+
 def read_rows(data_dir):
     rows = []
     # corpus files are *_final_transcription.jsonl, benchmark uses clean_transcription.jsonl
@@ -30,6 +37,7 @@ def read_rows(data_dir):
     jsonl_files += sorted(Path(data_dir).rglob("clean_transcription.jsonl"))
     for jf in jsonl_files:
         cat_dir = jf.parent
+        source = "benchmark" if jf.name == "clean_transcription.jsonl" else "corpus"
         with open(jf, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
@@ -42,6 +50,8 @@ def read_rows(data_dir):
                     # benchmark rows also have ground_truth, prefer that one
                     "transcription": (item.get("ground_truth") or item.get("Transcription") or "").strip(),
                     "speaker_id": item.get("Speaker_id", "unknown"),
+                    "subset": subset_of(cat_dir),
+                    "source": source,
                     "category": item.get("Audio_category", cat_dir.name),
                     "duration": float(item.get("Duration_seconds") or 0),
                     "confidence": item.get("Confidence_score"),
@@ -71,8 +81,10 @@ def split_rows(rows, seed, speaker_aware):
     rng = random.Random(seed)
     rows = rows[:]
     if speaker_aware:
-        # keep speakers separate so test speakers are unseen
-        speakers = list({r["speaker_id"] for r in rows})
+        # keep speakers separate so test speakers are unseen.
+        # sorted first: set order changes with python's hash seed, so
+        # shuffling the raw set gave a different split on every run
+        speakers = sorted({r["speaker_id"] for r in rows})
         rng.shuffle(speakers)
         n = len(speakers)
         test_sp = set(speakers[:max(1, int(n * 0.05))])
@@ -109,7 +121,12 @@ def main():
     ap.add_argument("--data-dir", default=None)
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--speaker-aware", action="store_true")
+    ap.add_argument("--benchmark", action="store_true",
+                    help="build the test-only benchmark manifest from "
+                         "dataset.benchmark_dir")
+    ap.add_argument("--speaker-aware", action=argparse.BooleanOptionalAction,
+                    default=True,
+                    help="no speaker in more than one split (default on)")
     ap.add_argument("--min-duration", type=float, default=0.5)
     ap.add_argument("--max-duration", type=float, default=60.0)
     ap.add_argument("--min-confidence", type=float, default=None,
@@ -117,16 +134,47 @@ def main():
     args = ap.parse_args()
 
     cfg = load_config(args.config)
-    data_dir = args.data_dir or cfg["dataset"]["local_dir"]
-    out_dir = Path(args.out_dir or cfg["dataset"]["manifest_dir"])
+    ds = cfg["dataset"]
+    bench_dir = ds.get("benchmark_dir", "data/benchmark_raw")
+    bench_manifest_dir = ds.get("benchmark_manifest_dir", "data/benchmark_manifests")
+    data_dir = args.data_dir or (bench_dir if args.benchmark else ds["local_dir"])
 
     rows = read_rows(data_dir)
     print(f"found {len(rows)} rows in transcription files")
-    rows = filter_rows(rows, args.min_duration, args.max_duration, args.min_confidence)
+
+    sources = {r["source"] for r in rows}
+    if sources == {"corpus", "benchmark"}:
+        raise SystemExit(
+            f"{data_dir} has both corpus and benchmark files. the benchmark is "
+            f"test-only and must not reach the training manifests - move "
+            f"benchmark/ into {bench_dir} and run again")
+    is_benchmark = sources == {"benchmark"}
+
+    if is_benchmark:
+        out_dir = Path(args.out_dir or bench_manifest_dir)
+        if out_dir.resolve() == Path(ds["manifest_dir"]).resolve():
+            raise SystemExit("benchmark manifests cannot go in the training "
+                             "manifest folder - use --out-dir " + bench_manifest_dir)
+    else:
+        out_dir = Path(args.out_dir or ds["manifest_dir"])
+
+    # the benchmark is a gold test set, so no duration cut-off beyond
+    # dropping empty or missing clips
+    if is_benchmark:
+        rows = filter_rows(rows, 0.0, float("inf"), None)
+    else:
+        rows = filter_rows(rows, args.min_duration, args.max_duration, args.min_confidence)
     print(f"after filtering: {len(rows)} rows")
 
     if not rows:
         print("nothing left - check the data dir, did the download finish?")
+        return
+
+    if is_benchmark:
+        # all of it is test data - splitting it would throw away 95%
+        write_jsonl(rows, out_dir / "test.jsonl")
+        print(f"benchmark test: {stats(rows)}")
+        print(f"manifest written to {out_dir / 'test.jsonl'}")
         return
 
     train, val, test = split_rows(rows, args.seed, args.speaker_aware)

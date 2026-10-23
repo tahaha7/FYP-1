@@ -1,20 +1,25 @@
-torch
-transformers
-peft
-accelerate
-datasets
-librosa
-soundfile
-pyannote.audio
-speechbrain
-ctranslate2
-# pinned - newer PyAV breaks faster-whisper (metadata_errors error)
+# GPU machine: training, diarization, speaker ID.
+# install torch first from the CUDA index that matches the driver, e.g.
+#   pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+# versions are pinned on purpose: transformers 5.x and pyannote.audio 4.x
+# changed the APIs these scripts use. requirements-gpu.lock.txt has the full
+# resolved set (python 3.11) if an exact copy of the environment is needed.
+torch==2.5.1
+torchaudio==2.5.1
+# newer PyAV breaks faster-whisper (metadata_errors error)
 faster-whisper==1.2.1
 av==12.3.0
-huggingface_hub
-jiwer
-cryptography
-pyyaml
-numpy
-scipy
-evaluate
+ctranslate2==4.5.0
+huggingface_hub==0.26.5
+jiwer==4.0.0
+cryptography==43.0.3
+pyyaml==6.0.2
+pytest==8.3.4
+transformers==4.46.3
+peft==0.13.2
+accelerate==1.1.1
+datasets==3.1.0
+librosa==0.10.2.post1
+soundfile==0.12.1
+pyannote.audio==3.3.2
+speechbrain==1.0.2
