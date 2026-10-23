@@ -1,0 +1,20 @@
+torch
+transformers
+peft
+accelerate
+datasets
+librosa
+soundfile
+pyannote.audio
+speechbrain
+ctranslate2
+# pinned - newer PyAV breaks faster-whisper (metadata_errors error)
+faster-whisper==1.2.1
+av==12.3.0
+huggingface_hub
+jiwer
+cryptography
+pyyaml
+numpy
+scipy
+evaluate
