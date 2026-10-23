@@ -1,0 +1,56 @@
+# echomind config - edit paths if you move things around
+
+dataset:
+  repo_id: "ASLP-lab/UrduSpeech"
+  # CS first, its the main one for code-switching
+  subsets_priority: ["CS", "Std", "EngPk"]
+  # real repo layout: corpus/US-CS, corpus/US-Std, corpus/US-EngPk
+  # plus benchmark/US-benchmark-CS etc for the manually checked set
+  subset_dirs:
+    CS: "corpus/US-CS"
+    Std: "corpus/US-Std"
+    EngPk: "corpus/US-EngPk"
+  local_dir: "data/raw"
+  manifest_dir: "data/manifests"
+
+asr:
+  # small model on cpu, the fine-tuned one on gpu
+  cpu_model_size: "base"
+  gpu_model_size: "large-v3"
+  compute_type_cpu: "int8"
+  compute_type_gpu: "float16"
+  language: null        # dont force a language, meetings switch urdu/english
+  vad_filter: true
+  word_timestamps: true
+
+finetune:
+  base_model: "openai/whisper-large-v3"
+  output_dir: "models/whisper-lora"
+  converted_dir: "models/whisper-lora-ct2"
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: ["q_proj", "v_proj"]
+  batch_size: 4         # drop to 2 on the 6gb laptop
+  grad_accum_steps: 8
+  learning_rate: 0.0001
+  num_epochs: 3
+
+diarization:
+  pipeline: "pyannote/speaker-diarization-3.1"
+  # backup option if pyannote struggles: nvidia neMo sortformer (not wired yet)
+
+speaker_id:
+  model: "speechbrain/spkrec-ecapa-voxceleb"
+  threshold: 0.35       # cosine score, below this = unknown speaker
+  store_dir: "outputs/voiceprints"
+
+storage:
+  base_dir: "outputs"
+  records_dir: "outputs/meetings"
+  key_path: "outputs/echomind.key"   # keep this file safe, its gitignored
+
+evaluation:
+  default_manifest: "data/manifests/test.jsonl"
+  results_path: "outputs/eval_results.json"
