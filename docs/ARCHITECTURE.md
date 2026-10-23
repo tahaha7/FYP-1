@@ -134,7 +134,7 @@ separation directly: the benchmark downloads to its own folder
 (`--benchmark --out data/benchmark_raw`) and gets its own manifests.
 
 **Why speaker-aware splits?**
-`prepare_data.py --speaker-aware` keeps every speaker in exactly one of
+`prepare_data.py` (speaker-aware by default) keeps every speaker in exactly one of
 train / val / test. Without this, the test set would contain voices the
 model has already heard in training, and the scores would look better
 than the model's real performance on new speakers.

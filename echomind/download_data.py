@@ -78,7 +78,14 @@ def main():
 
     cfg = load_config(args.config)
     repo_id = cfg["dataset"]["repo_id"]
-    out_dir = Path(args.out or cfg["dataset"]["local_dir"])
+    # benchmark goes to its own folder by default, so it can never be mixed
+    # into the training manifests by accident
+    if args.out:
+        out_dir = Path(args.out)
+    elif args.benchmark:
+        out_dir = Path(cfg["dataset"].get("benchmark_dir", "data/benchmark_raw"))
+    else:
+        out_dir = Path(cfg["dataset"]["local_dir"])
 
     if args.category == "all":
         cats = CATEGORIES[:args.max_categories]

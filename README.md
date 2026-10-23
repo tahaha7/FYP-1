@@ -151,19 +151,24 @@ python -m echomind.evaluate_asr --manifest data/manifests/test.jsonl --limit 10
 
 ### GPU machine (training, diarization, speaker ID)
 
-Taha's laptop (RTX 3050 6GB) or Colab:
+A university GPU PC (16 GB+ VRAM, bf16-capable GPU recommended):
 
 ```bash
+pip install torch==2.5.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements-gpu.txt
 export HF_TOKEN=...   # needed for the gated pyannote model
 
 # download more data, e.g. all short CS categories
 python -m echomind.download_data --subset CS --format short --category all --max-categories 12
 
-python -m echomind.prepare_data
+python -m echomind.prepare_data          # speaker-aware split by default
 
-# fine-tune (small batch on a 6GB card) - full guide: FINETUNING_GUIDE.md
-python scripts/train_lora.py --batch-size 2
+# the hand-checked benchmark: own folder, test-only manifest
+python -m echomind.download_data --benchmark --subset CS --format short --category all --max-categories 12
+python -m echomind.prepare_data --benchmark
+
+# fine-tune - full guide: FINETUNING_GUIDE.md
+python scripts/train_lora.py --batch-size 4 --grad-accum 8
 
 # merge the adapter into a full model, then convert it for faster-whisper
 python scripts/merge_lora.py
@@ -176,13 +181,16 @@ python scripts/convert_ct2.py --model models/whisper-merged --out models/whisper
   Only the CPU smoke test above is feasible there, and only with a small
   faster-whisper model (`base` by default, configurable in `config.yaml`).
 - **Fine-tuning Whisper Large-v3 with LoRA and running pyannote diarization
-  are GPU jobs.** The code for them is written to run on a GPU machine
-  (Taha's RTX 3050 6GB laptop with a small batch size, or Colab). Nothing
-  about GPU performance is claimed from the CPU machine.
+  are GPU jobs.** They run on the university's high-end GPU PCs. A 6 GB
+  laptop GPU is not enough to fine-tune Large-v3. Nothing about GPU
+  performance is claimed from the CPU machine.
 
 ## Metrics used
 
-- ASR: WER / CER (`echomind/evaluate_asr.py`)
+- ASR: WER / CER (`echomind/evaluate_asr.py`) — corpus-level (total errors
+  over total reference words), after the shared Urdu/English normaliser in
+  `echomind/text_norm.py`, broken down by subset and category. Every result
+  file records the git commit, package versions, settings and manifest hash.
 - Diarization: DER (roadmap — needs reference diarization labels)
 - Speaker ID: EER / FAR / FRR (roadmap — needs an enrolment trial set)
 - Extraction: precision / recall for decisions and action items (roadmap)

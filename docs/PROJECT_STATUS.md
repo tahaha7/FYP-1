@@ -33,6 +33,14 @@ reading this should be able to see exactly where the project stands.
   verified real layout (`corpus/` for training, `benchmark/` for the
   hand-checked set)
 - [x] All Python modules compile cleanly
+- [x] Evaluation and data integrity fixes (23 Oct 2026): benchmark kept
+  in its own folder and used whole as a test-only manifest, mixing with
+  corpus data refused, reproducible speaker-aware splits by default,
+  corpus-level WER/CER with a shared Urdu normaliser, `--language` option,
+  run metadata saved with every result, pinned dependencies, training
+  features computed on the fly. Tested in `tests/test_eval_and_data.py`;
+  the train → merge → convert → evaluate chain was run end to end on a
+  tiny random Whisper model to check the scripts (not a result)
 - [x] Unit tests for the pure-Python logic pass — evidence validation,
   rule-based extraction, procurement scanning, name resolution and
   speaker-aware data splitting (`tests/test_modules.py`, run in CI on
