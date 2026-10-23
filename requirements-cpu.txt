@@ -1,0 +1,8 @@
+# pinned where it matters - newer PyAV breaks faster-whisper (metadata_errors error)
+faster-whisper==1.2.1
+av==12.3.0
+huggingface_hub
+jiwer
+cryptography
+pyyaml
+pytest
