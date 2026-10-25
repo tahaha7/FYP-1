@@ -68,7 +68,8 @@ reading this should be able to see exactly where the project stands.
 ### Not yet built (planned, in order)
 
 - [ ] DER evaluation harness (needs reference speaker segments)
-- [ ] EER / FAR / FRR trial harness for speaker identification
+- [x] EER / FAR / FRR trial harness for speaker identification
+  (`python -m echomind.speaker_id eval`; still needs real trial clips)
 - [ ] Precision / recall scoring for decisions and action items (needs
   human-labelled meetings)
 - [ ] EchoMind Meeting Benchmark — a small set of real, consented meeting

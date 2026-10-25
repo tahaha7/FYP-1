@@ -101,7 +101,7 @@ echomind/
     prepare_data.py         # build train/val/test manifests
     transcribe.py           # faster-whisper wrapper
     diarize.py              # pyannote diarization (GPU machine)
-    speaker_id.py           # ECAPA-TDNN enrol / identify (GPU machine)
+    speaker_id.py           # ECAPA-TDNN enrol / identify / EER (CPU or GPU)
     storage.py              # Fernet encrypted local storage
     orchestrator.py         # MeetingPipeline — runs all steps
     understand.py           # summary / decisions / action items
@@ -174,6 +174,31 @@ python scripts/train_lora.py --batch-size 4 --grad-accum 8
 python scripts/merge_lora.py
 python scripts/convert_ct2.py --model models/whisper-merged --out models/whisper-lora-ct2
 ```
+
+### Speaker enrolment (CPU or GPU)
+
+ECAPA-TDNN is small, so this runs on a laptop too (it uses the GPU if there
+is one). Get written consent before enrolling anyone. Record 3-5 clips per
+person, at least 10 s each, on the same kind of mic used in meetings, and a
+separate set of clips per person for testing (never used for enrolment).
+
+```bash
+pip install torch==2.5.1 torchaudio==2.5.1 speechbrain==1.0.2 cryptography numpy pyyaml
+
+python -m echomind.speaker_id enroll --name rayyan data/enroll/rayyan/*.wav
+python -m echomind.speaker_id list
+python -m echomind.speaker_id identify data/verify/rayyan/clip1.wav
+python -m echomind.speaker_id delete --name rayyan     # consent withdrawn
+
+# FAR / FRR / EER: data/verify/<name>/*.wav, include someone NOT enrolled
+python -m echomind.speaker_id eval data/verify
+```
+
+Voiceprints are averaged over the clips and saved encrypted in
+`outputs/voiceprints/` with the key from `storage.key_path`. Enrolment
+refuses clips under 10 s and warns about a clip that does not match the
+person's other clips. `eval` prints the EER and the threshold at the EER
+point; put it in `speaker_id.threshold` in `config.yaml`.
 
 ## Hardware — stated honestly
 
